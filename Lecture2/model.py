@@ -2,6 +2,7 @@
 import torch.nn as nn
 from torch.autograd import Variable
 from collections import Counter, defaultdict, deque
+from nltk.tokenize import word_tokenize
 
 
 class WORD2VEC(nn.Module):
@@ -54,28 +55,37 @@ class WORD2VEC(nn.Module):
         return batch_windows, target_words
 
     def data_transfer(self, corpus_list):
-        batch_X = []
-        batch_y = []
+        """batch_data = [windows(list), target(list)]"""
+        batch_data = []
         for sentence in corpus_list:
             batch_windows, target_words = self.generate_batch(sentence)
-            for window in batch_windows:
-                batch_X.append([self.vocab2idx[word] for word in window])
-            for target in target_words:
-                batch_y.append([self.vocab2idx[target]])
-        return batch_X, batch_y
+            for window, target in zip(batch_windows, target_words):
+                idxed_window = [self.vocab2idx[word] for word in window]
+                idxed_target = [self.vocab2idx[target]]
+                batch_data.append([idxed_window, idxed_target])
+        return batch_data
 
+    def tokenize_corpus(self, corpus):
+        check = ['.', '!', ':', ',', '(', ')', '?', '@', '#', '[', ']', '-', '+', '=', '_']
+        corpus_list = []
+        for sentence in corpus:
+            temp = word_tokenize(sentence)
+            temp = [word.lower() for word in temp if word not in check]
+            corpus_list.append(temp)
+        return corpus_list
+    
     def fit(self, corpus):
-        corpus_list = [sentence.split() for sentence in corpus]
+        corpus_list = self.tokenize_corpus(corpus)
         self.get_vocabulary(corpus_list)
         self.V = len(self.vocab2idx)
-        X, y = self.data_transfer(corpus_list)
+        batch_data = self.data_transfer(corpus_list)
         self.build_network()
         print('fit done!')
-        return X, y
+        return batch_data
 
     def forward(self, X):
-        embed = self.i2h(X)
-        h = Variable(embed.data.mean(dim=0).unsqueeze(0))
-        output = self.h2o(h)
-        probs = self.softmax(output)
+        embed = self.i2h(X)  # batch x V x N
+        h = Variable(embed.data.mean(dim=1))  # batch x N
+        output = self.h2o(h)  # batch x V
+        probs = self.softmax(output)  # batch x V
         return output, probs

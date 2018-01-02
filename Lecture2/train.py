@@ -5,11 +5,12 @@ from torch.autograd import Variable
 import torch.nn as nn
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
+import torch.utils.data as data_utils
 import matplotlib.pylab as plt
 from operator import itemgetter
 import pandas as pd
 from scipy.spatial.distance import cosine
-
 
 def create_sample_data():
     corpus = ['the king loves the queen',
@@ -21,10 +22,19 @@ def create_sample_data():
 
     return corpus
 
+def get_data_loader(batch_data, batch_size, num_workers):
+    features = torch.LongTensor([batch_data[i][0] for i in range(len(batch_data))])
+    targets = torch.LongTensor([batch_data[i][1] for i in range(len(batch_data))])
+    data = data_utils.TensorDataset(features, targets)
 
-def train(corpus, n_epoch, N, half_window_size, lr):
+    loader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+
+    return loader
+
+def word2vec_train(corpus, N, half_window_size=2, lr=0.01, n_epoch=1000, batch_size=10, print_epoch=100, num_workers=2):
     word2vec = WORD2VEC(N=N, half_window_size=half_window_size, lr=lr)
-    X, y = word2vec.fit(corpus)
+    batch_data = word2vec.fit(corpus)
+    loader = get_data_loader(batch_data, batch_size, num_workers)
 
     F = nn.CrossEntropyLoss()
     optimizer = optim.SGD(word2vec.parameters(), lr=word2vec.lr)
@@ -32,20 +42,21 @@ def train(corpus, n_epoch, N, half_window_size, lr):
     loss_list = []
     for epoch in range(n_epoch):
 
-        for batch_X, batch_y in zip(X, y):
+        for batch_X, batch_y in loader:
             optimizer.zero_grad()
-            batch_X = Variable(torch.LongTensor(batch_X))
-            batch_y = Variable(torch.LongTensor(batch_y))
+            batch_X = Variable(batch_X)
+            batch_y = Variable(batch_y)
 
             output, probs = word2vec.forward(batch_X)
-
-            loss = F(output, batch_y)
+            loss = F(output, batch_y.squeeze(-1))  # must be 1-d tensor in labels
 
             loss.backward()
             optimizer.step()
         loss_list.append(loss.data[0])
-        if epoch % 1000 == 0:
+
+        if epoch % print_epoch == 0:
             print('#{}| loss:{}'.format(epoch, loss.data[0]))
+
 
     return word2vec, loss_list
 
