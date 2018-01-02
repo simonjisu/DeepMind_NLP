@@ -66,6 +66,7 @@ class WORD2VEC(nn.Module):
         return batch_data
 
     def tokenize_corpus(self, corpus):
+        """문장에 부호를 제거하고 단어 단위로 tokenize 한다"""
         check = ['.', '!', ':', ',', '(', ')', '?', '@', '#', '[', ']', '-', '+', '=', '_']
         corpus_list = []
         for sentence in corpus:
@@ -75,6 +76,11 @@ class WORD2VEC(nn.Module):
         return corpus_list
     
     def fit(self, corpus):
+        """
+        corpus를 학습시킬 데이터로 전환시켜준다. 모든 데이터는 단어의 vocab2idx를 근거해서 바뀐다.
+        Vocab이 설정되면 네트워크도 같이 설정된다.
+        batch_data = [window, target]
+        """
         corpus_list = self.tokenize_corpus(corpus)
         self.get_vocabulary(corpus_list)
         self.V = len(self.vocab2idx)

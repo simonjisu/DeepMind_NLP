@@ -22,19 +22,19 @@ def create_sample_data():
 
     return corpus
 
-def get_data_loader(batch_data, batch_size, num_workers):
+def get_data_loader(batch_data, batch_size, num_workers, shuffle=False):
     features = torch.LongTensor([batch_data[i][0] for i in range(len(batch_data))])
     targets = torch.LongTensor([batch_data[i][1] for i in range(len(batch_data))])
     data = data_utils.TensorDataset(features, targets)
 
-    loader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    loader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
     return loader
 
-def word2vec_train(corpus, N, half_window_size=2, lr=0.01, n_epoch=1000, batch_size=10, print_epoch=100, num_workers=2):
+def word2vec_train(corpus, N, half_window_size=2, lr=0.01, n_epoch=1000, batch_size=10, print_epoch=100, num_workers=2, shuffle=False):
     word2vec = WORD2VEC(N=N, half_window_size=half_window_size, lr=lr)
     batch_data = word2vec.fit(corpus)
-    loader = get_data_loader(batch_data, batch_size, num_workers)
+    loader = get_data_loader(batch_data, batch_size, num_workers, shuffle)
 
     F = nn.CrossEntropyLoss()
     optimizer = optim.SGD(word2vec.parameters(), lr=word2vec.lr)
