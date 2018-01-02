@@ -12,6 +12,7 @@ from operator import itemgetter
 import pandas as pd
 from scipy.spatial.distance import cosine
 
+
 def create_sample_data():
     corpus = ['the king loves the queen',
               'the queen loves the king',
@@ -22,6 +23,7 @@ def create_sample_data():
 
     return corpus
 
+
 def get_data_loader(batch_data, batch_size, num_workers, shuffle=False):
     features = torch.LongTensor([batch_data[i][0] for i in range(len(batch_data))])
     targets = torch.LongTensor([batch_data[i][1] for i in range(len(batch_data))])
@@ -31,7 +33,12 @@ def get_data_loader(batch_data, batch_size, num_workers, shuffle=False):
 
     return loader
 
+#################################################
+# Train
+#################################################
+
 def word2vec_train(corpus, N, half_window_size=2, lr=0.01, n_epoch=1000, batch_size=10, print_epoch=100, num_workers=2, shuffle=False):
+    """본격적으로 데이터를 학습한다"""
     word2vec = WORD2VEC(N=N, half_window_size=half_window_size, lr=lr)
     batch_data = word2vec.fit(corpus)
     loader = get_data_loader(batch_data, batch_size, num_workers, shuffle)
@@ -57,10 +64,11 @@ def word2vec_train(corpus, N, half_window_size=2, lr=0.01, n_epoch=1000, batch_s
         if epoch % print_epoch == 0:
             print('#{}| loss:{}'.format(epoch, loss.data[0]))
 
-
     return word2vec, loss_list
 
-
+#################################################
+# Utils
+#################################################
 def draw_loss_graph(loss_list, n_epoch):
     xx = np.linspace(0, n_epoch, num=n_epoch)
     plt.figure(figsize=(8, 8))
